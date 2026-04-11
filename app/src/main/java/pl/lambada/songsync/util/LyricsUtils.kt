@@ -171,6 +171,26 @@ fun handleSecurityException(
     }
 }
 
+private fun isLyricsContent(text: String): Boolean {
+    if (text.isBlank()) return false
+    
+    // 1. Check for standard synced lyrics pattern [00:00.00] or [00:00]
+    val timestampRegex = Regex("""\[\d{1,2}:\d{1,2}(\.\d{1,3})?\]""")
+    if (timestampRegex.containsMatchIn(text)) return true
+    
+    // 2. Check for unsynced lyrics by counting real lines
+    // Ignore lines that are strictly common metadata headers
+    val metadataTags = listOf("ti:", "ar:", "al:", "by:", "offset:", "re:", "ve:", "la:", "length:")
+    val lines = text.lines().map { it.trim() }.filter { it.isNotEmpty() }
+    val realLyricsLines = lines.filter { line ->
+        val isMetadata = line.startsWith("[") && metadataTags.any { tag -> line.substringAfter("[").startsWith(tag, ignoreCase = true) }
+        !isMetadata
+    }
+    
+    // If we have more than 3 lines of actual content, it's highly likely to be unsynced lyrics
+    return realLyricsLines.size >= 3
+}
+
 /**
  * Checks if a song has lyrics (either an .lrc file or embedded lyrics).
  * @param context The application context.
@@ -182,7 +202,15 @@ fun hasLyrics(context: Context, filePath: String?): Boolean {
 
     // 1. Check for .lrc file
     val lrcFile = filePath.toLrcFile()
-    if (lrcFile?.exists() == true && lrcFile.length() > 10) return true
+    if (lrcFile?.exists() == true && lrcFile.length() > 10) {
+        try {
+            // Read first 1KB to check if it's actually lyrics and not just metadata
+            val firstKB = lrcFile.inputStream().use { it.readBytes(1024).decodeToString() }
+            if (isLyricsContent(firstKB)) return true
+        } catch (e: Exception) {
+            Log.e("LyricsUtils", "Error reading LRC file $filePath: ${e.message}")
+        }
+    }
 
     // 2. Check for embedded lyrics
     return try {
@@ -190,12 +218,10 @@ fun hasLyrics(context: Context, filePath: String?): Boolean {
             val metadata = TagLib.getMetadata(pfd.detachFd(), false)
             val propertyMap = metadata?.propertyMap
             if (propertyMap != null) {
-                // Check specific lyrics tags (removed 'TEXT' as it is too generic)
                 val lyricsKeys = listOf("LYRICS", "UNSYNCEDLYRICS", "USLT")
                 lyricsKeys.any { key ->
                     val value = propertyMap[key]?.firstOrNull()
-                    // Must be non-blank and have a reasonable length (e.g., > 30 chars)
-                    !value.isNullOrBlank() && value.trim().length > 30
+                    value != null && isLyricsContent(value)
                 }
             } else false
         } ?: false
