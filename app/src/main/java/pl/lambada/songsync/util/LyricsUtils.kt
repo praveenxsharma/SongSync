@@ -174,21 +174,24 @@ fun handleSecurityException(
 private fun isLyricsContent(text: String): Boolean {
     if (text.isBlank()) return false
     
-    // 1. Check for standard synced lyrics pattern [00:00.00] or [00:00]
+    // 1. Check for standard synced lyrics pattern [00:00.00]
+    // Require at least 3 timestamps to ignore single-line credits or headers
     val timestampRegex = Regex("""\[\d{1,2}:\d{1,2}(\.\d{1,3})?\]""")
-    if (timestampRegex.containsMatchIn(text)) return true
+    val timestampCount = timestampRegex.findAll(text).count()
+    if (timestampCount >= 3) return true
     
     // 2. Check for unsynced lyrics by counting real lines
     // Ignore lines that are strictly common metadata headers
-    val metadataTags = listOf("ti:", "ar:", "al:", "by:", "offset:", "re:", "ve:", "la:", "length:")
+    val metadataTags = listOf("ti:", "ar:", "al:", "by:", "offset:", "re:", "ve:", "la:", "length:", "id:", "plain:", "total:", "author:", "tool:")
     val lines = text.lines().map { it.trim() }.filter { it.isNotEmpty() }
     val realLyricsLines = lines.filter { line ->
-        val isMetadata = line.startsWith("[") && metadataTags.any { tag -> line.substringAfter("[").startsWith(tag, ignoreCase = true) }
+        val isMetadata = (line.startsWith("[") && metadataTags.any { tag -> line.substringAfter("[").startsWith(tag, ignoreCase = true) }) 
+                        || line.length < 2 // Ignore very short lines/bullets
         !isMetadata
     }
     
-    // If we have more than 3 lines of actual content, it's highly likely to be unsynced lyrics
-    return realLyricsLines.size >= 3
+    // If we have more than 8 lines of actual content, it's highly likely to be unsynced lyrics
+    return realLyricsLines.size >= 8
 }
 
 /**
