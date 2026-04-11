@@ -204,9 +204,9 @@ fun hasLyrics(context: Context, filePath: String?): Boolean {
     val lrcFile = filePath.toLrcFile()
     if (lrcFile?.exists() == true && lrcFile.length() > 10) {
         try {
-            // Read first 1KB to check if it's actually lyrics and not just metadata
-            val firstKB = lrcFile.inputStream().use { it.readBytes(1024).decodeToString() }
-            if (isLyricsContent(firstKB)) return true
+            // Read the file and check if it's actually lyrics and not just metadata
+            val lrcContent = lrcFile.readText()
+            if (isLyricsContent(lrcContent)) return true
         } catch (e: Exception) {
             Log.e("LyricsUtils", "Error reading LRC file $filePath: ${e.message}")
         }
