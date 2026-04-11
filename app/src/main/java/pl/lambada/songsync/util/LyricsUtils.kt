@@ -218,6 +218,12 @@ enum class Providers(val displayName: String, val hasWordByWord: Boolean) {
 }
 
 // only for invoking the task and handling and reporting progress
+suspend fun downloadLyrics(
+    songs: List<Song>,
+    viewModel: HomeViewModel,
+    context: Context,
+    onProgressUpdate: (successCount: Int, noLyricsCount: Int, failedCount: Int) -> Unit,
+    onDownloadComplete: () -> Unit,
     onRateLimitReached: () -> Unit,
     onLyricsSaved: (Song) -> Unit = {}
 ) {

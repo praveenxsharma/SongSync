@@ -347,6 +347,9 @@ class HomeViewModel(
             onProgressUpdate = onProgressUpdate,
             onDownloadComplete = onDownloadComplete,
             onRateLimitReached = onRateLimitReached,
+            onLyricsSaved = { song ->
+                song.filePath?.let { lyricsStatusCache.remove(it) }
+            }
         )
     }
 
