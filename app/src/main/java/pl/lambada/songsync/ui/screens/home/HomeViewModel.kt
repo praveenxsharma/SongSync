@@ -235,14 +235,22 @@ class HomeViewModel(
 
         val songsToProcess = cachedSongs ?: return@launch
         val hideLyrics = userSettingsController.hideLyrics
+        val showFailedOnly = userSettingsController.showFailedOnly
         
         // Progressively determine which songs to show
-        val filteredList = if (hideLyrics) {
+        val filteredList = if (showFailedOnly) {
+            songsToProcess.filter { song ->
+                val isFailed = userSettingsController.failedLyricsPaths.contains(song.filePath)
+                isFailed && (!hideFolders || !userSettingsController.blacklistedFolders.contains(
+                    song.filePath!!.substring(0, song.filePath.lastIndexOf("/"))
+                ))
+            }
+        } else if (hideLyrics) {
             // Parallelly check for lyrics to avoid blocking the thread and speed up IO
             val results = songsToProcess.chunked(20).flatMap { chunk ->
                 chunk.map { song ->
                     async {
-                        val path = song.filePath ?: return@async song to true // Treat as has lyrics if path is null to avoid showing it in "without lyrics" filter
+                        val path = song.filePath ?: return@async song to true 
                         val cached = lyricsStatusCache[path]
                         if (cached != null) {
                             song to cached
@@ -288,6 +296,10 @@ class HomeViewModel(
 
     fun onHideLyricsChange(newHideLyrics: Boolean) {
         userSettingsController.updateHideLyrics(newHideLyrics)
+    }
+
+    fun onShowFailedOnlyChange(newShowFailedOnly: Boolean) {
+        userSettingsController.updateShowFailedOnly(newShowFailedOnly)
     }
 
     fun onToggleFolderBlacklist(folder: String, blacklisted: Boolean) {
@@ -336,9 +348,9 @@ class HomeViewModel(
 
     fun batchDownloadLyrics(
         context: Context,
-        onProgressUpdate: (successCount: Int, noLyricsCount: Int, failedCount: Int) -> Unit,
         onDownloadComplete: () -> Unit,
-        onRateLimitReached: () -> Unit
+        onRateLimitReached: () -> Unit,
+        onWait: (secondsRemaining: Int) -> Unit
     ) = viewModelScope.launch {
         downloadLyrics(
             songs = songsToBatchDownload,
@@ -347,8 +359,23 @@ class HomeViewModel(
             onProgressUpdate = onProgressUpdate,
             onDownloadComplete = onDownloadComplete,
             onRateLimitReached = onRateLimitReached,
+            onWait = onWait,
+            onNoLyricsFound = { song ->
+                song.filePath?.let { path ->
+                    val current = userSettingsController.failedLyricsPaths.toMutableSet()
+                    if (current.add(path)) {
+                        userSettingsController.updateFailedLyricsPaths(current)
+                    }
+                }
+            },
             onLyricsSaved = { song ->
-                song.filePath?.let { lyricsStatusCache.remove(it) }
+                song.filePath?.let { path ->
+                    lyricsStatusCache.remove(path)
+                    val current = userSettingsController.failedLyricsPaths.toMutableSet()
+                    if (current.remove(path)) {
+                        userSettingsController.updateFailedLyricsPaths(current)
+                    }
+                }
             }
         )
     }

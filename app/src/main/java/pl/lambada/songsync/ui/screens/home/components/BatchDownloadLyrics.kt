@@ -16,6 +16,7 @@ import pl.lambada.songsync.ui.screens.home.components.batchDownload.DownloadComp
 import pl.lambada.songsync.ui.screens.home.components.batchDownload.DownloadProgressDialog
 import pl.lambada.songsync.ui.screens.home.components.batchDownload.LegacyPromptDialog
 import pl.lambada.songsync.ui.screens.home.components.batchDownload.RateLimitedDialog
+import pl.lambada.songsync.ui.screens.home.components.batchDownload.WaitingDialog
 import kotlin.math.roundToInt
 
 @SuppressLint("StringFormatMatches")
@@ -26,6 +27,7 @@ fun BatchDownloadLyrics(viewModel: HomeViewModel, onDone: () -> Unit) {
     var successCount by rememberSaveable { mutableIntStateOf(0) }
     var noLyricsCount by rememberSaveable { mutableIntStateOf(0) }
     var failedCount by rememberSaveable { mutableIntStateOf(0) }
+    var waitingSeconds by rememberSaveable { mutableIntStateOf(0) }
     val count = successCount + failedCount + noLyricsCount
     val total = songs.size
     val context = LocalContext.current
@@ -37,9 +39,14 @@ fun BatchDownloadLyrics(viewModel: HomeViewModel, onDone: () -> Unit) {
                     successCount = newSuccessCount
                     noLyricsCount = newNoLyricsCount
                     failedCount = newFailedCount
+                    uiState = UiState.Pending
                 },
                 onDownloadComplete = { uiState = UiState.Done },
-                onRateLimitReached = { uiState = UiState.RateLimited }
+                onRateLimitReached = { uiState = UiState.RateLimited },
+                onWait = {
+                    waitingSeconds = it
+                    uiState = UiState.Waiting
+                }
             )
         }
     }
@@ -94,9 +101,14 @@ fun BatchDownloadLyrics(viewModel: HomeViewModel, onDone: () -> Unit) {
         )
 
         UiState.RateLimited -> RateLimitedDialog(onDismiss = { uiState = UiState.Cancelled })
+
+        UiState.Waiting -> WaitingDialog(
+            secondsRemaining = waitingSeconds,
+            onCancel = { uiState = UiState.Cancelled }
+        )
     }
 }
 
 enum class UiState {
-    Warning, LegacyPrompt, Pending, Done, RateLimited, Cancelled
+    Warning, LegacyPrompt, Pending, Done, RateLimited, Waiting, Cancelled
 }

@@ -61,6 +61,14 @@ class UserSettingsController(private val dataStore: DataStore<Preferences>) {
     var directlyModifyTimestamps by mutableStateOf(dataStore.get(directlyModifyTimestampsKey, false))
         private set
 
+    var showFailedOnly by mutableStateOf(dataStore.get(showFailedOnlyKey, false))
+        private set
+
+    var failedLyricsPaths by mutableStateOf(
+        dataStore.get(failedLyricsPathsKey, "").split(",").filter { it.isNotEmpty() }.toSet()
+    )
+        private set
+
     var sortOrder by mutableStateOf(
         SortOrders.entries
             .find { it.queryName == dataStore.get(sortOrderKey, SortOrders.ASCENDING.queryName) }!!
@@ -152,6 +160,16 @@ class UserSettingsController(private val dataStore: DataStore<Preferences>) {
         dataStore.set(sortByKey, to.name)
         sortBy = to
     }
+
+    fun updateShowFailedOnly(to: Boolean) {
+        dataStore.set(showFailedOnlyKey, to)
+        showFailedOnly = to
+    }
+
+    fun updateFailedLyricsPaths(to: Set<String>) {
+        dataStore.set(failedLyricsPathsKey, to.joinToString(","))
+        failedLyricsPaths = to
+    }
 }
 
 private val embedKey = booleanPreferencesKey("embed_lyrics")
@@ -170,3 +188,5 @@ private val showPathKey = booleanPreferencesKey("show_path")
 private val sortOrderKey = stringPreferencesKey("sort_order")
 private val sortByKey = stringPreferencesKey("sort_by")
 private val directlyModifyTimestampsKey = booleanPreferencesKey("directly_modify_timestamps")
+private val showFailedOnlyKey = booleanPreferencesKey("show_failed_only")
+private val failedLyricsPathsKey = stringPreferencesKey("failed_lyrics_paths")

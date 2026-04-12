@@ -2,6 +2,7 @@ package pl.lambada.songsync.util
 
 import android.annotation.SuppressLint
 import android.app.PendingIntent
+import kotlinx.coroutines.delay
 import android.app.RecoverableSecurityException
 import android.content.Context
 import android.net.Uri
@@ -254,6 +255,8 @@ suspend fun downloadLyrics(
     onProgressUpdate: (successCount: Int, noLyricsCount: Int, failedCount: Int) -> Unit,
     onDownloadComplete: () -> Unit,
     onRateLimitReached: () -> Unit,
+    onWait: (secondsRemaining: Int) -> Unit = {},
+    onNoLyricsFound: (Song) -> Unit = {},
     onLyricsSaved: (Song) -> Unit = {}
 ) {
     var successCount = 0
@@ -262,6 +265,23 @@ suspend fun downloadLyrics(
     var consecutiveNotFound = 0
 
     songs.forEach { song ->
+        // skip if song already has lyrics
+        if (hasLyrics(context, song.filePath)) {
+            successCount++
+            onProgressUpdate(successCount, noLyricsCount, failedCount)
+            return@forEach
+        }
+
+        // handle rate limit with 3m wait
+        if (consecutiveNotFound >= 5) {
+            onRateLimitReached()
+            for (i in 180 downTo 1) {
+                onWait(i)
+                delay(1000)
+            }
+            consecutiveNotFound = 0
+        }
+
         downloadLyricsForSong(
             song,
             viewModel,
@@ -269,13 +289,13 @@ suspend fun downloadLyrics(
             onFailedSongInfoResponse = {
                 failedCount++
                 consecutiveNotFound++
-                if (consecutiveNotFound >= 5) onRateLimitReached()
             },
             onSuccessfulSongInfoResponse = { consecutiveNotFound = 0 },
             onFailedLyricsResponse = {
-                if (it is NullPointerException || it is FileNotFoundException)
+                if (it is NullPointerException || it is FileNotFoundException) {
                     noLyricsCount++
-                else {
+                    onNoLyricsFound(song)
+                } else {
                     failedCount++
                     consecutiveNotFound++
                 }

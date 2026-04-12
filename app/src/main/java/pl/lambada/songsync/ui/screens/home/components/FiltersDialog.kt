@@ -47,9 +47,11 @@ fun FiltersDialog(
     hideLyrics: Boolean,
     folders: List<String>,
     blacklistedFolders: List<String>,
+    showFailedOnly: Boolean,
     onDismiss: () -> Unit,
     onFilterChange: () -> Unit,
     onHideLyricsChange: (Boolean) -> Unit,
+    onShowFailedOnlyChange: (Boolean) -> Unit,
     onToggleFolderBlacklist: (String, Boolean) -> Unit
 ) {
     var showFolders by rememberSaveable { mutableStateOf(false) }
@@ -81,8 +83,21 @@ fun FiltersDialog(
                         end = 10.dp,
                         bottom = 8.dp
                     )
+                }
+                SwitchItem(
+                    label = stringResource(R.string.failed_downloads_only),
+                    selected = showFailedOnly,
+                    modifier = Modifier
+                        .padding(horizontal = 16.dp)
+                        .clip(RoundedCornerShape(20f)),
+                    innerPaddingValues = PaddingValues(
+                        top = 8.dp,
+                        start = 8.dp,
+                        end = 10.dp,
+                        bottom = 8.dp
+                    )
                 ) {
-                    onHideLyricsChange(!hideLyrics)
+                    onShowFailedOnlyChange(!showFailedOnly)
                     onFilterChange()
                 }
                 Spacer(modifier = Modifier.height(16.dp))

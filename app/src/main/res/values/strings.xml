@@ -86,6 +86,7 @@
     <string name="close">Close</string>
     <string name="filters">Filters</string>
     <string name="no_lyrics_only">Show songs only without lyrics</string>
+    <string name="failed_downloads_only">Show only failed downloads</string>
     <string name="ignore_folders">Ignore folders</string>
     <string name="save">Save</string>
     <string name="credentials_saved">Credentials saved</string>
@@ -171,4 +172,5 @@
         <item quantity="one">%1$d song</item>
         <item quantity="other">%1$d songs</item>
     </plurals>
+    <string name="resuming_in">Resuming in %d seconds...</string>
 </resources>
