@@ -82,7 +82,9 @@ fun FiltersDialog(
                         start = 8.dp,
                         end = 10.dp,
                         bottom = 8.dp
-                    )
+                ) {
+                    onHideLyricsChange(!hideLyrics)
+                    onFilterChange()
                 }
                 SwitchItem(
                     label = stringResource(R.string.failed_downloads_only),

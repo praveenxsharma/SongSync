@@ -348,6 +348,7 @@ class HomeViewModel(
 
     fun batchDownloadLyrics(
         context: Context,
+        onProgressUpdate: (successCount: Int, noLyricsCount: Int, failedCount: Int) -> Unit,
         onDownloadComplete: () -> Unit,
         onRateLimitReached: () -> Unit,
         onWait: (secondsRemaining: Int) -> Unit
