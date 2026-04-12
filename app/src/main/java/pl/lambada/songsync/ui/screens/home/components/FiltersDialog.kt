@@ -82,6 +82,7 @@ fun FiltersDialog(
                         start = 8.dp,
                         end = 10.dp,
                         bottom = 8.dp
+                    )
                 ) {
                     onHideLyricsChange(!hideLyrics)
                     onFilterChange()
