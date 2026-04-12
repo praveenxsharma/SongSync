@@ -1,12 +1,19 @@
 name: Build APK
 
 on:
-  workflow_dispatch: # This enables the manual "Run workflow" button
+  push:
+    branches:
+      - "**"
+  pull_request:
+    branches:
+      - "**"
+  workflow_dispatch:
 
 jobs:
   build-debug:
     name: Build debug APK
     runs-on: ubuntu-latest
+
     permissions:
       contents: read
       packages: write
@@ -17,7 +24,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4 # Updated to v4 for better compatibility
+        uses: actions/checkout@v2
 
       - name: Set up JDK
         uses: actions/setup-java@v3
@@ -35,8 +42,7 @@ jobs:
           path: ./app/build/outputs/apk/debug/app-debug.apk
 
   build-release:
-    # Updated condition to allow manual runs
-    if: github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'push'
     name: Build signed release APK
     runs-on: ubuntu-latest
 
@@ -56,7 +62,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v2
 
       - name: Set up JDK
         uses: actions/setup-java@v3
